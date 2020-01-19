@@ -1,6 +1,7 @@
 """Tools for managing certificates."""
 import datetime
 import logging
+import sys
 import re
 import traceback
 from typing import Any
@@ -298,30 +299,48 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
     now = datetime.datetime.now(pytz.UTC)
 
     reasons = []
+    is_tty = sys.stdout.isatty()
     if cert.is_test_cert:
-        reasons.append('TEST_CERT')
+        reasons.append('{prepend}TEST_CERT{append}'.format(prepend=
+            util.ANSI_SGR_FG_YELLOW if is_tty else "", append=
+            util.ANSI_SGR_RESET if is_tty else ""))
     if cert.target_expiry <= now:
-        reasons.append('EXPIRED')
+        reasons.append('{prepend}EXPIRED{append}'.format(prepend=
+            util.ANSI_SGR_BG_RED+util.ANSI_SGR_BOLD+
+            util.ANSI_SGR_FG_BRIGHT_YELLOW if is_tty else "", append=
+            util.ANSI_SGR_RESET if is_tty else ""))
     elif checker.ocsp_revoked(cert):
-        reasons.append('REVOKED')
+        reasons.append('{prepend}REVOKED{append}'.format(prepend=
+            util.ANSI_SGR_BG_RED+util.ANSI_SGR_BOLD+
+            util.ANSI_SGR_FG_BRIGHT_YELLOW if is_tty else "", append=
+            util.ANSI_SGR_RESET if is_tty else ""))
 
     if reasons:
-        status = "INVALID: " + ", ".join(reasons)
+        status = "{prepend}INVALID{append}: ".format(prepend=util.ANSI_SGR_BOLD+
+            util.ANSI_SGR_FG_BRIGHT_RED if is_tty else "", append=
+            util.ANSI_SGR_RESET if is_tty else "") + ", ".join(reasons)
     else:
         diff = cert.target_expiry - now
+        status = "{prepend}VALID{append}: ".format(prepend=
+            util.ANSI_SGR_FG_BRIGHT_GREEN+util.ANSI_SGR_BOLD if is_tty else "",
+            append=util.ANSI_SGR_RESET if is_tty else "")
         if diff.days == 1:
-            status = "VALID: 1 day"
+            status += "1 day"
         elif diff.days < 1:
-            status = f"VALID: {diff.seconds // 3600} hour(s)"
+            status += f"{diff.seconds // 3600} hour(s)"
         else:
-            status = f"VALID: {diff.days} days"
+            status += f"{diff.days} days"
+
+    bold = util.ANSI_SGR_BOLD if is_tty else ""
+    underline = util.ANSI_SGR_UNDERLINE if is_tty else ""
+    reset = util.ANSI_SGR_RESET if is_tty else ""
 
     valid_string = "{0} ({1})".format(cert.target_expiry, status)
     serial = format(crypto_util.get_serial_from_cert(cert.cert_path), 'x')
     if cert.private_key_type == "RSA":
-        key_details = "Size: {} bits".format(cert.rsa_key_size)
+        key_details = "Size:                {} bits".format(cert.rsa_key_size)
     else:
-        key_details = "Curve: {}".format(cert.elliptic_curve)
+        key_details = "Curve:               {}".format(cert.elliptic_curve)
 
     tls_feats: Union[crypto_util.x509.TLSFeature, List] = crypto_util.get_tls_features_from_cert(
                                                            cert.cert_path) or []
@@ -336,18 +355,19 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
             must_staple = True
     installer = str(cert.configuration['renewalparams'].get('installer')).lower()
     authenticator = str(cert.configuration['renewalparams'].get('authenticator')).lower()
-    certinfo.append(f"  Certificate Name: {cert.lineagename}\n"
-                    f"    Serial Number: {serial}\n"
-                    f"    Key Type: {cert.private_key_type}\n"
+    certinfo.append(f"  {bold}Certificate Name{reset}:          "
+                    f"{underline}{cert.lineagename}{reset}\n"
+                    f"    Serial Number:           {serial}\n"
+                    f"    Key Type:                {cert.private_key_type}\n"
                     f"    Key {key_details}\n"
-                    f'    Domains: {" ".join(cert.names())}\n'
+                    f'    Domains:                 {" ".join(cert.names())}\n'
                     f"    Must Staple TLS Feature: {'Enabled' if must_staple else 'Disabled'}\n"
-                    f"    Expiry Date: {valid_string}\n"
+                    f"    Expiry Date:             {valid_string}\n"
                      "    Plugins:\n"
-                    f"        Authenticator: {authenticator}\n"
-                    f"        Installer: {installer}\n"
-                    f"    Certificate Path: {cert.fullchain}\n"
-                    f"    Private Key Path: {cert.privkey}")
+                    f"        Authenticator:       {authenticator}\n"
+                    f"        Installer:           {installer}\n"
+                    f"    Certificate Path:        {cert.fullchain}\n"
+                    f"    Private Key Path:        {cert.privkey}")
     return "".join(certinfo)
 
 

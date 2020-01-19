@@ -209,7 +209,7 @@ class ColoredStreamHandlerTest(unittest.TestCase):
         self.logger.debug(msg)
 
         assert self.stream.getvalue() == \
-                         '{0}{1}{2}\n'.format(util.ANSI_SGR_RED,
+                         '{0}{1}{2}\n'.format(util.ANSI_SGR_FG_RED,
                                               msg,
                                               util.ANSI_SGR_RESET)
 

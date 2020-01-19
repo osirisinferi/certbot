@@ -46,9 +46,21 @@ CSR = collections.namedtuple("CSR", "file data form")
 
 # ANSI SGR escape codes
 # Formats text as bold or with increased intensity
-ANSI_SGR_BOLD = '\033[1m'
-# Colors text red
-ANSI_SGR_RED = "\033[31m"
+ANSI_SGR_BOLD = "\033[1m"
+# Formats text as underlined
+ANSI_SGR_UNDERLINE = "\033[4m"
+# Colors foreground text red
+ANSI_SGR_FG_RED = "\033[31m"
+# Colors foreground text yellow
+ANSI_SGR_FG_YELLOW = "\033[33m"
+# Colors foreground text bright red
+ANSI_SGR_FG_BRIGHT_RED    = "\033[91m"
+# Colors foreground text bright green
+ANSI_SGR_FG_BRIGHT_GREEN  = "\033[92m"
+# Colors foreground text bright yellow
+ANSI_SGR_FG_BRIGHT_YELLOW = "\033[93m"
+# Colors background text red
+ANSI_SGR_BG_RED = "\033[41m"
 # Resets output format
 ANSI_SGR_RESET = "\033[0m"
 

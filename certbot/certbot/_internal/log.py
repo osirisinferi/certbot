@@ -202,7 +202,7 @@ class ColoredStreamHandler(logging.StreamHandler):
         """
         out = super().format(record)
         if self.colored and record.levelno >= self.red_level:
-            return ''.join((util.ANSI_SGR_RED, out, util.ANSI_SGR_RESET))
+            return ''.join((util.ANSI_SGR_FG_RED, out, util.ANSI_SGR_RESET))
         return out
 
 

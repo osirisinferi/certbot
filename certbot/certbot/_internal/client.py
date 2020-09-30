@@ -95,8 +95,17 @@ def determine_user_agent(config: configuration.NamespaceConfig) -> str:
     # policy, talk to a core Certbot team member before making any
     # changes here.
     if config.user_agent is None:
-        ua = ("CertbotACMEClient/{0} ({1}; {2}{8}) Authenticator/{3} Installer/{4} "
-              "({5}; flags: {6}) Py/{7}")
+        # Required for functions without authenticator and/or installer
+        try:
+            config.auth_version
+        except AttributeError:
+            config.auth_version = None
+        try:
+            config.inst_version
+        except AttributeError:
+            config.inst_version = None
+        ua = ("CertbotACMEClient/{0} ({1}; {2}{8}) Authenticator/{3}_{9} "
+              "Installer/{4}_{10} ({5}; flags: {6}) Py/{7}")
         if os.environ.get("CERTBOT_DOCS") == "1":
             cli_command = "certbot"
             os_info = "OS_NAME OS_VERSION"
@@ -108,7 +117,8 @@ def determine_user_agent(config: configuration.NamespaceConfig) -> str:
         ua = ua.format(certbot.__version__, cli_command, os_info,
                        config.authenticator, config.installer, config.verb,
                        ua_flags(config), python_version,
-                       "; " + config.user_agent_comment if config.user_agent_comment else "")
+                       "; " + config.user_agent_comment if config.user_agent_comment else "",
+                       config.auth_version, config.inst_version)
     else:
         ua = config.user_agent
     return ua
@@ -138,7 +148,9 @@ class DummyConfig:
     """Shim for computing a sample user agent."""
     def __init__(self) -> None:
         self.authenticator = "XXX"
+        self.auth_version = "0.0.0"
         self.installer = "YYY"
+        self.inst_version = "0.0.0"
         self.user_agent = None
         self.verb = "SUBCOMMAND"
 

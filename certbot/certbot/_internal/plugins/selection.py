@@ -179,17 +179,21 @@ def record_chosen_plugins(config: configuration.NamespaceConfig, plugins: disco.
                           inst: Optional[interfaces.Installer]) -> None:
     """Update the config entries to reflect the plugins we actually selected."""
     config.authenticator = None
+    config.auth_version = None
     if auth:
         auth_ep = plugins.find_init(auth)
         if auth_ep:
             config.authenticator = auth_ep.name
+            config.auth_version = auth_ep.entry_point.dist.version
     config.installer = None
+    config.inst_version = None
     if inst:
         inst_ep = plugins.find_init(inst)
         if inst_ep:
             config.installer = inst_ep.name
-    logger.info("Plugins selected: Authenticator %s, Installer %s",
-                config.authenticator, config.installer)
+            config.inst_version = inst_ep.entry_point.dist.version
+    logger.info("Plugins selected: Authenticator %s (%s), Installer %s (%s)",
+                config.authenticator, config.auth_version, config.installer, config.inst_version)
 
 
 def choose_configurator_plugins(config: configuration.NamespaceConfig,

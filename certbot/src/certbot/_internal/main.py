@@ -1344,7 +1344,7 @@ def revoke(config: configuration.NamespaceConfig,
 
     """
     # For user-agent construction
-    config.installer = config.authenticator = None
+    config.installer = config.authenticator = config.auth_version = config.inst_version = None
 
     if config.cert_path is None and config.certname:
         # When revoking via --cert-name, take the cert path and server from renewalparams

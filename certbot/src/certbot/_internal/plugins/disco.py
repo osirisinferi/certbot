@@ -41,6 +41,9 @@ class PluginEntryPoint:
         self.name = self.entry_point_to_plugin_name(entry_point)
         self.plugin_cls: Type[interfaces.Plugin] = entry_point.load()
         self.entry_point = entry_point
+        self.version: Optional[str] = None
+        if entry_point.dist is not None:
+            self.version = entry_point.dist.version
         self.warning_message: Optional[str] = None
         self._initialized: Optional[interfaces.Plugin] = None
         self._prepared: Optional[Union[bool, Error]] = None
@@ -149,6 +152,7 @@ class PluginEntryPoint:
         lines = [
             "* {0}".format(self.name),
             "Description: {0}".format(self.plugin_cls.description),
+            "Version: {0}".format(self.version),
             "Interfaces: {0}".format(", ".join(
                 iface.__name__ for iface in PLUGIN_INTERFACES
                 if issubclass(self.plugin_cls, iface)

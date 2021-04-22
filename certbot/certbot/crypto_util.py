@@ -676,6 +676,23 @@ def get_serial_from_cert(cert_path: str) -> int:
     return x509.get_serial_number()
 
 
+def get_tls_features_from_cert(cert_path):
+    """Retrieve the TLS features of a certificate from certificate path
+
+    :param str cert_path: path to a cert in PEM format
+
+    :returns: TLS features enabled in the certificate
+    :rtype: TLSFeature, list
+    """
+    with open(cert_path, 'rb') as f:
+        cert = x509.load_pem_x509_certificate(f.read(), default_backend())
+    try:
+        tls_feature = cert.extensions.get_extension_for_oid(x509.ExtensionOID.TLS_FEATURE).value
+    except x509.extensions.ExtensionNotFound:
+        tls_feature = None
+    return tls_feature
+
+
 def find_chain_with_issuer(fullchains: List[str], issuer_cn: str,
                            warn_on_no_match: bool = False) -> str:
     """Chooses the first certificate chain from fullchains whose topmost

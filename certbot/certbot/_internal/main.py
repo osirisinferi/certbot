@@ -509,6 +509,10 @@ def _find_domains_or_certname(config: configuration.NamespaceConfig,
                            "will help in domain names autodiscovery, or "
                            "--cert-name for an existing certificate name.")
 
+    suggestions = display_ops.suggest_names_from_vhost(domains, installer)
+
+    domains.extend(suggestions)
+
     return domains, certname
 
 

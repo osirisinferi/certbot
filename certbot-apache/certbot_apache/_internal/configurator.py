@@ -872,6 +872,25 @@ class ApacheConfigurator(common.Configurator):
             addr.get_addr() == "_default_" for addr in vh.addrs
         )]
 
+    def get_vhost_suggestions(self, domains: List[str]) -> Set[str]:
+        """Loops over all VirtualHost sections and selects from the VirtualHosts
+        with one or more hostnames in `domains` the hostnames which are *not* in
+        `domains`. I.e.: possibly forgotten hostnames.
+
+        :param list domains: list of domains selected by user
+
+        :returns: Set of hostnames 
+        :rtype: set
+        """
+        suggestions = set()
+
+        for vhost in self.vhosts:
+            crossref = vhost.get_names().intersection(domains)
+            if crossref and not crossref == vhost.get_names():
+                suggestions.update(crossref)
+
+        return suggestions
+
     def get_all_names(self) -> Set[str]:
         """Returns all names found in the Apache Configuration.
 

@@ -106,6 +106,19 @@ def choose_values(values: List[str], question: Optional[str] = None) -> List[str
     return []
 
 
+def suggest_names_from_vhost(domains: List[str],
+                             installer: Optional[interfaces.Installer]) -> List[str]:
+    suggestions = list(installer.get_vhost_suggestions(domains))
+
+    question = ("The following hostnames are used in one or more of the VirtualHosts "
+                "you've selected hostnames from, but are currently not selected. If you "
+                "want to include these in your certificate too, you can select them here.")
+    code, names = z_util(interfaces.IDisplay).checklist(
+        question, tags=suggestions, force_interactive=True)
+
+    return [str(s) for s in names]
+
+
 def choose_names(installer: Optional[interfaces.Installer],
                  question: Optional[str] = None) -> List[str]:
     """Display screen to select domains to validate.

@@ -1127,6 +1127,23 @@ class RenewableCert(interfaces.RenewableCert):
         else:
             return "ECDSA"
 
+    @property
+    def private_key_size(self):
+        """
+        :returns: The size in bits (RSA) or curve name (ECDSA) of the private key
+        :rtype: str
+        """
+        with open(self.configuration["privkey"], "rb") as priv_key_file:
+            key = load_pem_private_key(
+                data=priv_key_file.read(),
+                password=None,
+                backend=default_backend()
+            )
+        if isinstance(key, RSAPrivateKey):
+            return str(key.key_size)
+        else:
+            return key.curve.name
+
     def save_successor(self, prior_version: int, new_cert: bytes, new_privkey: bytes,
                        new_chain: bytes, cli_config: configuration.NamespaceConfig) -> int:
         """Save new cert and chain as a successor of a prior version.

@@ -324,9 +324,16 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
 
     valid_string = "{0} ({1})".format(cert.target_expiry, status)
     serial = format(crypto_util.get_serial_from_cert(cert.cert_path), 'x')
+
+    if cert.private_key_type == "RSA":
+        key_details = "Size: {} bits".format(cert.private_key_size)
+    else:
+        key_details = "Curve: {}".format(cert.private_key_size)
+
     certinfo.append("  Certificate Name: {}\n"
                     "    Serial Number: {}\n"
                     "    Key Type: {}\n"
+                    "    Key {}\n"
                     "    Domains: {}\n"
                     "    Expiry Date: {}\n"
                     "    Certificate Path: {}\n"
@@ -334,6 +341,7 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
                          cert.lineagename,
                          serial,
                          cert.private_key_type,
+                         key_details,
                          " ".join(cert.names()),
                          valid_string,
                          cert.fullchain,

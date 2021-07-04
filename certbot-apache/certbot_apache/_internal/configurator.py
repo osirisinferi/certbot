@@ -164,7 +164,7 @@ class ApacheConfigurator(common.Installer):
         if self.version < (2, 4, 11) or not openssl_version or\
             LooseVersion(openssl_version) < LooseVersion('1.0.2l'):
             return apache_util.find_ssl_apache_conf("old")
-        return apache_util.find_ssl_apache_conf("current")
+        return apache_util.find_ssl_apache_conf("new")
 
     def _prepare_options(self):
         """
@@ -632,7 +632,11 @@ class ApacheConfigurator(common.Installer):
         self.prepare_server_https("443")
 
         # If we haven't managed to enable mod_ssl by this point, error out
-        if "ssl_module" not in self.parser.modules:
+        if "ssl_module" in self.parser.modules:
+            ssl = "mod_ssl"
+        elif "gnutls_module" in self.parser.modules:
+            ssl = "mod_gnutls"
+        else:
             raise errors.MisconfigurationError("Could not find ssl_module; "
                 "not installing certificate.")
 
@@ -640,10 +644,16 @@ class ApacheConfigurator(common.Installer):
         self._add_dummy_ssl_directives(vhost.path)
         self._clean_vhost(vhost)
 
-        path = {"cert_path": self.parser.find_dir("SSLCertificateFile",
-                                                  None, vhost.path),
-                "cert_key": self.parser.find_dir("SSLCertificateKeyFile",
-                                                 None, vhost.path)}
+        if ssl == "mod_ssl":
+            path = {"cert_path": self.parser.find_dir("SSLCertificateFile",
+                                                      None, vhost.path),
+                    "cert_key": self.parser.find_dir("SSLCertificateKeyFile",
+                                                     None, vhost.path)}
+        else:
+            path = {"cert_path": self.parser.find_dir("GnuTLSCertificateFile",
+                                                      None, vhost.path),
+                    "cert_key": self.parser.find_dir("GnuTLSKeyFile",
+                                                     None, vhost.path)}
 
         # Only include if a certificate chain is specified
         if chain_path is not None:
@@ -652,7 +662,7 @@ class ApacheConfigurator(common.Installer):
 
         logger.info("Deploying Certificate to VirtualHost %s", vhost.filep)
 
-        if self.version < (2, 4, 8) or (chain_path and not fullchain_path):
+        if (self.version < (2, 4, 8) or (chain_path and not fullchain_path)) and ssl == "mod_ssl":
             # install SSLCertificateFile, SSLCertificateKeyFile,
             # and SSLCertificateChainFile directives
             set_cert_path = cert_path
@@ -973,8 +983,9 @@ class ApacheConfigurator(common.Installer):
             addrs.add(obj.Addr.fromstring(self.parser.get_arg(arg)))
         is_ssl = False
 
-        if self.parser.find_dir("SSLEngine", "on", start=path, exclude=False):
-            is_ssl = True
+        if (self.parser.find_dir("SSLEngine", "on", start=path, exclude=False) or
+            self.parser.find_dir("GnuTLSEable", "on", start=path, exclude=False)):
+                is_ssl = True
 
         # "SSLEngine on" might be set outside of <VirtualHost>
         # Treat vhosts with port 443 as ssl vhosts
@@ -1524,7 +1535,10 @@ class ApacheConfigurator(common.Installer):
             ssl_vh_contents, sift = self._sift_rewrite_rules(orig_contents)
 
             with open(ssl_fp, "a") as new_file:
-                new_file.write("<IfModule mod_ssl.c>\n")
+                if "ssl_module" in self.parser.modules:
+                    new_file.write("<IfModule mod_ssl.c>\n")
+                else:
+                    new_file.write("<IfModule mod_gnutls.c>\n")
                 new_file.write("\n".join(ssl_vh_contents))
                 # The content does not include the closing tag, so add it
                 new_file.write("</VirtualHost>\n")
@@ -1686,10 +1700,17 @@ class ApacheConfigurator(common.Installer):
                 self.parser.aug.remove(re.sub(r"/\w*$", "", directive_path[0]))
 
     def _add_dummy_ssl_directives(self, vh_path):
-        self.parser.add_dir(vh_path, "SSLCertificateFile",
-                            "insert_cert_file_path")
-        self.parser.add_dir(vh_path, "SSLCertificateKeyFile",
-                            "insert_key_file_path")
+        if "ssl_module" in self.parser.modules:
+            self.parser.add_dir(vh_path, "SSLCertificateFile",
+                                "insert_cert_file_path")
+            self.parser.add_dir(vh_path, "SSLCertificateKeyFile",
+                                "insert_key_file_path")
+        else:
+            self.parser.add_dir(vh_path, "GnuTLSCertificateFile",
+                                "insert_cert_file_path")
+            self.parser.add_dir(vh_path, "GnuTLSKeyFile",
+                                "insert_key_file_path")
+
         # Only include the TLS configuration if not already included
         existing_inc = self.parser.find_dir("Include", self.mod_ssl_conf, vh_path)
         if not existing_inc:

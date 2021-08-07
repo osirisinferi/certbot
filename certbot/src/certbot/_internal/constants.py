@@ -84,6 +84,7 @@ CLI_DEFAULTS: Dict[str, Any] = dict(  # pylint: disable=use-dict-literal
     eab_kid=None,
     issuance_timeout=90,
     run_deploy_hooks=False,
+    certfilter=[],
 
     # Subparsers
     num=None,

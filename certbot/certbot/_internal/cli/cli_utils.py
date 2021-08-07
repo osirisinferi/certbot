@@ -244,6 +244,35 @@ class _RenewHookAction(argparse.Action):
         namespace.renew_hook = values
 
 
+class _CertFilterAction(argparse.Action):
+    """Action class for parsing certificate filters."""
+
+    def __call__(self, parser, namespace, filters, option_string=None):
+        allowed_filters = ['staging',
+                           'rsa',
+                           'ecdsa',
+                           'renewable']
+        applied_filters = []
+        unknown_filters = []
+
+        for comma_separated_filters in filters.casefold().split(','):
+            for filter in comma_separated_filters.split():
+                if filter is None:
+                    continue
+                if filter in allowed_filters or filter[2:] in allowed_filters:
+                    applied_filters.append(filter)
+                else:
+                    unknown_filters.append(filter)
+
+        if unknown_filters:
+            raise argparse.ArgumentError(self, f'Unknown filter(s): {", ".join(unknown_filters)}')
+
+        for filter in applied_filters:
+            if filter[:2] == 'no' and filter[2:] in applied_filters:
+                raise argparse.ArgumentError(self, 'Conflicting filters')
+        namespace.certfilter = applied_filters
+
+
 def nonnegative_int(value: str) -> int:
     """Converts value to an int and checks that it is not negative.
 

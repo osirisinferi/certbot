@@ -17,7 +17,9 @@ from certbot import crypto_util
 from certbot import errors
 from certbot import ocsp
 from certbot import util
+from certbot._internal import client
 from certbot._internal import storage
+from certbot._internal.renewal import should_autorenew
 from certbot.compat import os
 from certbot.display import util as display_util
 
@@ -62,11 +64,25 @@ def certificates(config: configuration.NamespaceConfig) -> None:
     """
     parsed_certs = []
     parse_failures = []
+    acme_clients = {}
     for renewal_file in storage.renewal_conf_files(config):
         try:
+            server = config.server
+            if server not in acme_clients:
+                acme_clients[server] = client.create_acme_client(config)
             renewal_candidate = storage.RenewableCert(renewal_file, config)
             crypto_util.verify_renewable_cert(renewal_candidate)
-            parsed_certs.append(renewal_candidate)
+            key_type = renewal_candidate.private_key_type.lower()
+            renewable = should_autorenew(config, renewal_candidate, acme_clients)
+            if not ((("staging" in config.certfilter and not renewal_candidate.is_test_cert) or
+                     ("nostaging" in config.certfilter and renewal_candidate.is_test_cert)) or
+                    (("rsa" in config.certfilter and key_type != "rsa") or
+                     ("norsa" in config.certfilter and key_type == "rsa")) or
+                    (("ecdsa" in config.certfilter and key_type != "ecdsa") or
+                     ("noecdsa" in config.certfilter and key_type == "ecdsa")) or
+                    (("renewable" in config.certfilter and not renewable) or
+                     ("norenewable" in config.certfilter and renewable))):
+                parsed_certs.append(renewal_candidate)
         except Exception as e:  # pylint: disable=broad-except
             logger.warning("Renewal configuration file %s produced an "
                            "unexpected error: %s. Skipping.", renewal_file, e)

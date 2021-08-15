@@ -210,6 +210,35 @@ def probe_sni(name: bytes, host: bytes, port: int = 443, timeout: int = 300,  # 
     return client_ssl.get_peer_certificate()
 
 
+class crypto_x509_eddsa(crypto.X509Req):
+    """
+    Derived class to monkey patch crypto.X509Req.sign(). See below for more info.
+    """
+    def sign(self, pkey, digest) -> None:
+        #pylint: disable=W0212
+        """
+        Sign the certificate signing request with this key and digest type.
+
+        This is almost identical to crypto.sign() but the digest is fixed to
+        NULL so it can be used for signing EdDSA CSRs. OpenSSL currently does
+        not ignore the digest value when signing EdDSA CSRs and crypto.sign()
+        does not accept a NULL parameter (only valid digests).
+
+        :param pkey: The key pair to sign with.
+        :type pkey: :py:class:`PKey`
+        :param digest: The name of the message digest to use for the signature,
+            e.g. :py:data:`b"sha256"`.
+        :return: ``None``
+        """
+        from OpenSSL._util import (
+            ffi as _ffi,
+            lib as _lib
+        )
+
+        sign_result = _lib.X509_REQ_sign(self._req, pkey._pkey, _ffi.NULL)
+        crypto._openssl_assert(sign_result > 0)
+
+
 def make_csr(private_key_pem: bytes, domains: Optional[Union[Set[str], List[str]]] = None,
              must_staple: bool = False,
              ipaddrs: Optional[List[Union[ipaddress.IPv4Address, ipaddress.IPv6Address]]] = None
@@ -227,7 +256,12 @@ def make_csr(private_key_pem: bytes, domains: Optional[Union[Set[str], List[str]
     """
     private_key = crypto.load_privatekey(
         crypto.FILETYPE_PEM, private_key_pem)
-    csr = crypto.X509Req()
+    # 1087 and 1088 are the OpenSSL NIDs for Ed25519 and Ed448 respectively
+    # See https://github.com/openssl/openssl/blob/15e2b0f02d5e4fcc683e9e14539ab5b8187ca754/include/openssl/obj_mac.h#L5210-L5216 for source #pylint: disable=C0301
+    if private_key.type() in [1087, 1088]:
+        csr = crypto_x509_eddsa()
+    else:
+        csr = crypto.X509Req()
     sanlist = []
     # if domain or ip list not supplied make it empty list so it's easier to iterate
     if domains is None:

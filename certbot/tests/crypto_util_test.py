@@ -247,9 +247,9 @@ class MakeKeyTest(unittest.TestCase):
             OpenSSL.crypto.load_privatekey(
                 OpenSSL.crypto.FILETYPE_PEM, make_key(1024, key_type='unf'))
         self.assertEqual(
-            "Invalid key_type specified: unf.  Use [rsa|ecdsa]",
+            "Invalid key_type specified: unf. Use [rsa|ecdsa|ed25519|ed448]",
             str(e.exception),
-            "Invalid key_type specified: unf.  Use [rsa|ecdsa]",
+            "Invalid key_type specified: unf. Use [rsa|ecdsa|ed25519|ed448]",
         )
 
 

@@ -26,6 +26,8 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.dsa import DSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.ec import ECDSA
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.serialization import Encoding
@@ -94,8 +96,12 @@ def generate_key(key_size: int, key_dir: str, key_type: str = "rsa",
         key_f.write(key_pem)
     if key_type == 'rsa':
         logger.debug("Generating RSA key (%d bits): %s", key_size, key_path)
-    else:
+    elif key_type == 'ecdsa':
         logger.debug("Generating ECDSA key (%d bits): %s", key_size, key_path)
+    elif key_type == 'ed25519':
+        logger.debug("Generating Ed25519 key (256 bits): %s", key_path)
+    elif key_type == 'ed448':
+        logger.debug("Generating Ed448 key (448 bits): %s", key_path)
 
     return util.Key(key_path, key_pem)
 
@@ -313,8 +319,25 @@ def make_key(bits: int = 1024, key_type: str = "rsa",
             encryption_algorithm=NoEncryption()
         )
         key = crypto.load_privatekey(crypto.FILETYPE_PEM, _key_pem)
+    elif key_type == 'ed25519':
+        _key = Ed25519PrivateKey.generate()
+        _key_pem = _key.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.PKCS8,
+            encryption_algorithm=NoEncryption()
+        )
+        key = crypto.load_privatekey(crypto.FILETYPE_PEM, _key_pem)
+    elif key_type == 'ed448':
+        _key = Ed448PrivateKey.generate()
+        _key_pem = _key.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.PKCS8,
+            encryption_algorithm=NoEncryption()
+        )
+        key = crypto.load_privatekey(crypto.FILETYPE_PEM, _key_pem)
     else:
-        raise errors.Error("Invalid key_type specified: {}.  Use [rsa|ecdsa]".format(key_type))
+        raise errors.Error("Invalid key_type specified: {}. "
+                           "Use [rsa|ecdsa|ed25519|ed448]".format(key_type))
     return crypto.dump_privatekey(crypto.FILETYPE_PEM, key)
 
 

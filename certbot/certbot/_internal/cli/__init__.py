@@ -299,7 +299,7 @@ def prepare_and_parse_args(plugins: plugins_disco.PluginsRegistry, args: List[st
         "security", "--rsa-key-size", type=int, metavar="N",
         default=flag_default("rsa_key_size"), help=config_help("rsa_key_size"))
     helpful.add(
-        "security", "--key-type", choices=['rsa', 'ecdsa'], type=str,
+        "security", "--key-type", choices=['rsa', 'ecdsa', 'ed25519', 'ed448'], type=str,
         default=flag_default("key_type"), help=config_help("key_type"))
     helpful.add(
         "security", "--elliptic-curve", type=str, choices=[

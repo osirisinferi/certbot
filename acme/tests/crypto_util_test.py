@@ -322,6 +322,40 @@ class MakeCSRTest(unittest.TestCase):
         self.assertEqual(csr.get_version(), 0,
             "Expected CSR version to be v1 (encoded as 0), per RFC 2986, section 4")
 
+    def test_make_eddsa_csr(self):
+        from acme.crypto_util import make_csr
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives.serialization import Encoding
+        from cryptography.hazmat.primitives.serialization import NoEncryption
+        from cryptography.hazmat.primitives.serialization import PrivateFormat
+
+        _privkey = Ed25519PrivateKey.generate()
+        _privkey_pem = _privkey.private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.PKCS8,
+            encryption_algorithm=NoEncryption()
+        )
+        privkey = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, _privkey_pem)
+        privkey_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, privkey)
+
+        csr_pem = make_csr(privkey_pem, ["example.com"])
+        self.assertIn(b'--BEGIN CERTIFICATE REQUEST--', csr_pem)
+        self.assertIn(b'--END CERTIFICATE REQUEST--', csr_pem)
+        csr = OpenSSL.crypto.load_certificate_request(
+            OpenSSL.crypto.FILETYPE_PEM, csr_pem)
+        # In pyopenssl 0.13 (used with TOXENV=py27-oldest), csr objects don't
+        # have a get_extensions() method, so we skip this test if the method
+        # isn't available.
+        if hasattr(csr, 'get_extensions'):
+            self.assertEqual(len(csr.get_extensions()), 1)
+            self.assertEqual(csr.get_extensions()[0].get_data(),
+                OpenSSL.crypto.X509Extension(
+                    b'subjectAltName',
+                    critical=False,
+                    value=b'DNS:example.com',
+                ).get_data(),
+            )
+
 
 class DumpPyopensslChainTest(unittest.TestCase):
     """Test for dump_pyopenssl_chain."""

@@ -15,6 +15,9 @@ from typing import Tuple
 
 import configobj
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.ed448 import Ed448PrivateKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 import parsedatetime
@@ -1129,8 +1132,14 @@ class RenewableCert(interfaces.RenewableCert):
             )
         if isinstance(key, RSAPrivateKey):
             return "RSA"
-        else:
+        elif isinstance(key, EllipticCurvePrivateKey):
             return "ECDSA"
+        elif isinstance(key, Ed25519PrivateKey):
+            return "ED25519"
+        elif isinstance(key, Ed448PrivateKey):
+            return "ED448"
+        else:
+            raise errors.CertStorageError("Unsupported key type detected!")
 
     def save_successor(self, prior_version: int, new_cert: bytes, new_privkey: bytes,
                        new_chain: bytes, cli_config: configuration.NamespaceConfig) -> int:

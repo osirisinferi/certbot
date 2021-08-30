@@ -6,6 +6,8 @@
 """
 import datetime
 import hashlib
+from ipaddress import IPv4Address
+from ipaddress import IPv6Address
 import logging
 import re
 from typing import Callable
@@ -135,8 +137,9 @@ def init_save_key(key_size: int, key_dir: str, key_type: str = "rsa",
                         keyname=keyname, strict_permissions=config.strict_permissions)
 
 
-def generate_csr(privkey: util.Key, names: Union[List[str], Set[str]], path: str,
-                 must_staple: bool = False, strict_permissions: bool = True) -> util.CSR:
+def generate_csr(privkey: util.Key, path: str, dnsnames: Union[List[str], Set[str]] = None,
+                 must_staple: bool = False, strict_permissions: bool = True,
+                 ipnames: List[Union[IPv4Address, IPv6Address]] = None) -> util.CSR:
     """Initialize a CSR with the given private key.
 
     :param privkey: Key to include in the CSR
@@ -152,7 +155,7 @@ def generate_csr(privkey: util.Key, names: Union[List[str], Set[str]], path: str
 
     """
     csr_pem = acme_crypto_util.make_csr(
-        privkey.pem, names, must_staple=must_staple)
+        privkey.pem, dnsnames, must_staple, ipnames)
 
     # Save CSR
     util.make_or_verify_dir(path, 0o755, strict_permissions)
@@ -188,7 +191,7 @@ def init_save_csr(privkey: util.Key, names: Set[str], path: str) -> util.CSR:
 
     config = zope.component.getUtility(interfaces.IConfig)
 
-    return generate_csr(privkey, names, path, must_staple=config.must_staple,
+    return generate_csr(privkey, path, names, must_staple=config.must_staple,
                         strict_permissions=config.strict_permissions)
 
 

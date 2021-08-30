@@ -94,7 +94,7 @@ class GenerateCSRTest(test_util.TempDirTestCase):
         mock_csr.return_value = b'csr_pem'
 
         csr = generate_csr(
-            mock.Mock(pem='dummy_key'), 'example.com', self.tempdir, strict_permissions=True)
+            mock.Mock(pem='dummy_key'), self.tempdir, 'example.com', strict_permissions=True)
 
         self.assertEqual(csr.data, b'csr_pem')
         self.assertIn('csr-certbot.pem', csr.file)

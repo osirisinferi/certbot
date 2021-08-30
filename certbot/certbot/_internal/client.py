@@ -1,6 +1,9 @@
 """Certbot client API."""
 import datetime
 import logging
+from ipaddress import ip_address
+from ipaddress import IPv4Address
+from ipaddress import IPv6Address
 import platform
 from typing import Any
 from typing import Callable
@@ -10,6 +13,7 @@ from typing import IO
 from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
@@ -349,13 +353,13 @@ class Client:
         cert, chain = crypto_util.cert_and_chain_from_fullchain(fullchain)
         return cert.encode(), chain.encode()
 
-    def obtain_certificate(self, domains: List[str], old_keypath: Optional[str] = None
+    def obtain_certificate(self, names: List[str], old_keypath: Optional[str] = None
                            ) -> Tuple[bytes, bytes, util.Key, util.CSR]:
         """Obtains a certificate from the ACME server.
 
         `.register` must be called before `.obtain_certificate`
 
-        :param list domains: domains to get a certificate
+        :param list names: domains or IP addresses to get a certificate for
 
         :returns: certificate as PEM string, chain as PEM string,
             newly generated private key (`.util.Key`), and DER-encoded
@@ -399,6 +403,15 @@ class Client:
         elif self.config.rsa_key_size and self.config.key_type.lower() == 'rsa':
             key_size = self.config.rsa_key_size
 
+        dnsnames: List[str] = []
+        ipnames: List[Union[IPv4Address, IPv6Address]] = []
+
+        for name in names:
+            try:
+                ipnames.append(ip_address(name))
+            except ValueError:
+                dnsnames.append(name)
+
         # Create CSR from names
         if self.config.dry_run:
             key = key or util.Key(
@@ -412,7 +425,7 @@ class Client:
             )
             csr = util.CSR(file=None, form="pem",
                            data=acme_crypto_util.make_csr(
-                               key.pem, domains, self.config.must_staple))
+                               key.pem, dnsnames, self.config.must_staple, ipnames))
         else:
             key = key or crypto_util.generate_key(
                 key_size=key_size,
@@ -422,7 +435,8 @@ class Client:
                 strict_permissions=self.config.strict_permissions,
             )
             csr = crypto_util.generate_csr(
-                key, domains, None, self.config.must_staple, self.config.strict_permissions)
+                key, dnsnames, None, self.config.must_staple, self.config.strict_permissions,
+                ipnames)
 
         try:
             orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
@@ -431,21 +445,21 @@ class Client:
             # Certbot can retry the operation without the rejected
             # domains contained within subproblems.
             if self.config.allow_subset_of_names:
-                successful_domains = self._successful_domains_from_error(error, domains)
-                if successful_domains != domains and len(successful_domains) != 0:
-                    return self._retry_obtain_certificate(domains, successful_domains)
+                successful_domains = self._successful_domains_from_error(error, names)
+                if successful_domains != names and len(successful_domains) != 0:
+                    return self._retry_obtain_certificate(names, successful_domains)
             raise
         authzr = orderr.authorizations
         auth_domains = {a.body.identifier.value for a in authzr}
-        successful_domains = [d for d in domains if d in auth_domains]
+        successful_domains = [d for d in dnsnames+[str(x) for x in ipnames] if d in auth_domains]
 
         # allow_subset_of_names is currently disabled for wildcard
         # certificates. The reason for this and checking allow_subset_of_names
         # below is because successful_domains == domains is never true if
         # domains contains a wildcard because the ACME spec forbids identifiers
         # in authzs from containing a wildcard character.
-        if self.config.allow_subset_of_names and successful_domains != domains:
-            return self._retry_obtain_certificate(domains, successful_domains)
+        if self.config.allow_subset_of_names and successful_domains != names:
+            return self._retry_obtain_certificate(names, successful_domains)
         else:
             try:
                 cert, chain = self.obtain_certificate_from_csr(csr, orderr)
@@ -455,9 +469,9 @@ class Client:
                 # order finalization. Certbot can retry the operation without
                 # the rejected domains contained within subproblems.
                 if self.config.allow_subset_of_names:
-                    successful_domains = self._successful_domains_from_error(error, domains)
-                    if successful_domains != domains and len(successful_domains) != 0:
-                        return self._retry_obtain_certificate(domains, successful_domains)
+                    successful_domains = self._successful_domains_from_error(error, names)
+                    if successful_domains != names and len(successful_domains) != 0:
+                        return self._retry_obtain_certificate(names, successful_domains)
                 raise
 
     def _get_order_and_authorizations(self, csr_pem: bytes,

@@ -123,7 +123,7 @@ class ClientV2:
         """
         csr = OpenSSL.crypto.load_certificate_request(OpenSSL.crypto.FILETYPE_PEM, csr_pem)
         # pylint: disable=protected-access
-        dnsNames = crypto_util._pyopenssl_cert_or_req_all_names(csr)
+        dnsNames = crypto_util._pyopenssl_cert_or_req_san_dns(csr)
         ipNames = crypto_util._pyopenssl_cert_or_req_san_ip(csr)
         # ipNames is now []string
         identifiers = []

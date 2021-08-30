@@ -110,7 +110,8 @@ More details about these changes can be found on our GitHub repo.
 
 ### Added
 
-*
+* Add IP address SAN support. Note that SANs containing IP addresses are currently
+  not supported by Let's Encrypt.
 
 ### Changed
 

@@ -6,6 +6,8 @@
 """
 import datetime
 import hashlib
+from ipaddress import IPv4Address
+from ipaddress import IPv6Address
 import logging
 import re
 from typing import List
@@ -100,8 +102,9 @@ def generate_key(key_size: int, key_dir: Optional[str], key_type: str = "rsa",
     return util.Key(key_path, key_pem)
 
 
-def generate_csr(privkey: util.Key, names: Union[List[str], Set[str]], path: Optional[str],
-                 must_staple: bool = False, strict_permissions: bool = True) -> util.CSR:
+def generate_csr(privkey: util.Key, dnsnames: Optional[Union[List[str], Set[str]]],
+                 path: Optional[str], must_staple: bool = False, strict_permissions: bool = True,
+                 ipnames: Optional[List[Union[IPv4Address, IPv6Address]]] = None) -> util.CSR:
     """Initialize a CSR with the given private key.
 
     :param privkey: Key to include in the CSR
@@ -117,7 +120,7 @@ def generate_csr(privkey: util.Key, names: Union[List[str], Set[str]], path: Opt
 
     """
     csr_pem = acme_crypto_util.make_csr(
-        privkey.pem, names, must_staple=must_staple)
+        privkey.pem, dnsnames, must_staple, ipnames)
 
     # Save CSR, if requested
     csr_filename = None

@@ -1338,12 +1338,6 @@ class MainTest(test_util.ConfigTestCase):
         # FQDN 2
         with pytest.raises(errors.ConfigurationError):
             self._call(['-d', (('a' * 50) + '.') * 10])
-        # Bare IP address (this is actually a different error message now)
-        with pytest.raises(errors.ConfigurationError):
-            self._call(['-d', '204.11.231.35'])
-        # Bare IPv6 address
-        with pytest.raises(errors.ConfigurationError):
-            self._call(['-d', '2001:db8:ac69:3ff:b1cb:c8c6:5a84:a31b'])
 
     def test_csr_with_besteffort(self):
         with pytest.raises(errors.Error):

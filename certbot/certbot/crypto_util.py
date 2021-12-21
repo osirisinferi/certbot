@@ -687,16 +687,24 @@ def find_chain_with_issuer(fullchains: List[str], issuer_cn: str,
     :returns: The best-matching fullchain, PEM-encoded, or the first if none match.
     :rtype: `str`
     """
+    altchains = []
+    found = False
     for chain in fullchains:
         certs = CERT_PEM_REGEX.findall(chain.encode())
         top_cert = x509.load_pem_x509_certificate(certs[-1], default_backend())
         top_issuer_cn = top_cert.issuer.get_attributes_for_oid(x509.NameOID.COMMON_NAME)
         if top_issuer_cn and top_issuer_cn[0].value == issuer_cn:
-            return chain
+            found = True
+            fullchain = chain
+        else:
+            altchains.append(chain)
+
+    if found:
+        return fullchain, altchains
 
     # Nothing matched, return whatever was first in the list.
     if warn_on_no_match:
         logger.warning("Certbot has been configured to prefer certificate chains with "
                     "issuer '%s', but no chain from the CA matched this issuer. Using "
                     "the default certificate chain instead.", issuer_cn)
-    return fullchains[0]
+    return fullchains[0], fullchains[1:]

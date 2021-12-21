@@ -336,15 +336,26 @@ class Client:
         logger.debug("Will poll for certificate issuance until %s", deadline)
 
         orderr = self.acme.finalize_order(
-            orderr, deadline, fetch_alternative_chains=self.config.preferred_chain is not None)
+            orderr, deadline, fetch_alternative_chains=True)
 
         fullchain = orderr.fullchain_pem
         if self.config.preferred_chain and orderr.alternative_fullchains_pem:
-            fullchain = crypto_util.find_chain_with_issuer(
+            fullchain, alt_fullchains = crypto_util.find_chain_with_issuer(
                 [fullchain] + orderr.alternative_fullchains_pem,
                 self.config.preferred_chain, not self.config.dry_run)
+        elif orderr.alternative_fullchains_pem:
+            alt_fullchains = orderr.alternative_fullchains_pem
+        else:
+            alt_fullchains = []
+
         cert, chain = crypto_util.cert_and_chain_from_fullchain(fullchain)
-        return cert.encode(), chain.encode()
+
+        alt_chains = []
+        for alt_chain in alt_fullchains:
+            _, altchain = crypto_util.cert_and_chain_from_fullchain(alt_chain)
+            alt_chains.append(altchain)
+
+        return cert.encode(), chain.encode(), [x.encode() for x in alt_chains]
 
     def obtain_certificate(self, domains: List[str], old_keypath: Optional[str] = None
                            ) -> Tuple[bytes, bytes, util.Key, util.CSR]:
@@ -437,8 +448,8 @@ class Client:
                 os.remove(csr.file)
             return self.obtain_certificate(successful_domains)
         else:
-            cert, chain = self.obtain_certificate_from_csr(csr, orderr)
-            return cert, chain, key, csr
+            cert, chain, altchains = self.obtain_certificate_from_csr(csr, orderr)
+            return cert, chain, altchains, key, csr
 
     def _get_order_and_authorizations(self, csr_pem: bytes,
                                       best_effort: bool) -> messages.OrderResource:
@@ -493,7 +504,7 @@ class Client:
             referred to the enrolled cert lineage, or None if doing a successful dry run.
 
         """
-        cert, chain, key, _ = self.obtain_certificate(domains)
+        cert, chain, altchains, key, _ = self.obtain_certificate(domains)
 
         if (self.config.config_dir != constants.CLI_DEFAULTS["config_dir"] or
                 self.config.work_dir != constants.CLI_DEFAULTS["work_dir"]):
@@ -509,6 +520,7 @@ class Client:
         return storage.RenewableCert.new_lineage(
             new_name, cert,
             key.pem, chain,
+            altchains,
             self.config)
 
     def _choose_lineagename(self, domains: List[str], certname: Optional[str]) -> str:

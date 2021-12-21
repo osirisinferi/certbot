@@ -342,13 +342,13 @@ def renew_cert(config: configuration.NamespaceConfig, domains: Optional[List[str
         _update_renewal_params_from_key(new_key, config)
     else:
         new_key = None
-    new_cert, new_chain, new_key, _ = le_client.obtain_certificate(domains, new_key)
+    new_cert, new_chain, new_alt_chains, new_key, _ = le_client.obtain_certificate(domains, new_key)
     if config.dry_run:
         logger.debug("Dry run: skipping updating lineage at %s", os.path.dirname(lineage.cert))
     else:
         prior_version = lineage.latest_common_version()
         # TODO: Check return value of save_successor
-        lineage.save_successor(prior_version, new_cert, new_key.pem, new_chain, config)
+        lineage.save_successor(prior_version, new_cert, new_key.pem, new_chain, new_alt_chains, config)
         lineage.update_all_links_to(lineage.latest_common_version())
 
     hooks.renew_hook(config, domains, lineage.live_dir)

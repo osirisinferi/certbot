@@ -1015,7 +1015,7 @@ class RenewableCert(interfaces.RenewableCert):
 
     @classmethod
     def new_lineage(cls, lineagename: str, cert: bytes, privkey: bytes, chain: bytes,
-                    cli_config: configuration.NamespaceConfig) -> "RenewableCert":
+                    altchains: list, cli_config: configuration.NamespaceConfig) -> "RenewableCert":
         """Create a new certificate lineage.
 
         Attempts to create a certificate lineage -- enrolled for
@@ -1094,6 +1094,11 @@ class RenewableCert(interfaces.RenewableCert):
             # ending newline character
             logger.debug("Writing full chain to %s.", target["fullchain"])
             f_b.write(cert + chain)
+        for i, altchain in enumerate(altchains, 1):
+            alt_target = os.path.join(archive, f"altchain{i}_1.pem")
+            with open(alt_target, "wb") as f_b:
+                logger.debug("Writing altchain %d to %s.", i, alt_target)
+                f_b.write(altchain)
 
         # Write a README file to the live directory
         readme_path = os.path.join(live_dir, README)
@@ -1127,7 +1132,8 @@ class RenewableCert(interfaces.RenewableCert):
             return "ECDSA"
 
     def save_successor(self, prior_version: int, new_cert: bytes, new_privkey: bytes,
-                       new_chain: bytes, cli_config: configuration.NamespaceConfig) -> int:
+                       new_chain: bytes, new_alt_chains: list,
+                       cli_config: configuration.NamespaceConfig) -> int:
         """Save new cert and chain as a successor of a prior version.
 
         Returns the new version number that was created.
@@ -1196,6 +1202,11 @@ class RenewableCert(interfaces.RenewableCert):
         with open(target["fullchain"], "wb") as f:
             logger.debug("Writing full chain to %s.", target["fullchain"])
             f.write(new_cert + new_chain)
+        for i, altchain in enumerate(new_alt_chains, 1):
+            alt_target = os.path.join(self.archive_dir, f"altchain{i}_{target_version}.pem")
+            with open(alt_target, "wb") as f:
+                logger.debug("Writing altchain %d to %s.", i, alt_target)
+                f.write(altchain)
 
         symlinks = {kind: self.configuration[kind] for kind in ALL_FOUR}
         # Update renewal config file

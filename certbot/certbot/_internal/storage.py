@@ -974,7 +974,7 @@ class RenewableCert(interfaces.RenewableCert):
         :rtype: bool
         """
         # Only try to check ARI if we're talking to a staging server.
-        if not self.is_test_cert():
+        if not self.is_test_cert:
             return False
 
         cert_path = self.version("cert", version)
@@ -1018,7 +1018,7 @@ class RenewableCert(interfaces.RenewableCert):
             return True
 
         # Renewals on the basis on ACME Renewal Info
-        if self.ari_shouldrenew():
+        if self.ari_shouldrenew(self.latest_common_version()):
             logger.debug("Should renew, ARI renewal window in past.")
             return True
 
@@ -1033,6 +1033,7 @@ class RenewableCert(interfaces.RenewableCert):
                             "expiry %s.", interval,
                             expiry.strftime("%Y-%m-%d %H:%M:%S %Z"))
             return True
+        return False
 
     @classmethod
     def new_lineage(cls, lineagename: str, cert: bytes, privkey: bytes, chain: bytes,

@@ -1167,7 +1167,7 @@ class MainTest(test_util.ConfigTestCase):
         lineage.update_all_links_to.assert_called_once_with(
             lineage.latest_common_version())
         self.assertEqual(mock_report.call_count, 1)
-        self.assertIn('fullchain.pem', mock_report.call_args[0][2])
+        self.assertIn('cert_intermediate_1.pem', mock_report.call_args[0][2])
         self.assertIn('donate', mock_register.call_args[0][1])
 
     @mock.patch('certbot._internal.main.display_util.notify')

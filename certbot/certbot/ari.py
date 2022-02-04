@@ -1,7 +1,10 @@
+"""Cerbot implementation of the ACME Renewal Information (ARI) Extension."""
 from cryptography.hazmat.primitives import hashes
 from cryptography import x509
 from cryptography.x509 import ocsp
+import datetime
 import josepy as jose
+from random import randrange
 import requests
 
 from acme.messages import RenewalInfo
@@ -10,7 +13,7 @@ from certbot.interfaces import RenewableCert  # pylint: disable=unused-import
 class AriChecker(object):
     """This class checks ACME Renewal Info."""
 
-    def __init__(self, ari_endpoint: string) -> None:
+    def __init__(self, ari_endpoint: str) -> None:
         self.ari_endpoint = ari_endpoint.rstrip('/')
 
     def _compute_path(self, cert: RenewableCert, issuer: RenewableCert) -> bool:
@@ -26,12 +29,12 @@ class AriChecker(object):
         serial = hex(ocspRequest.serial_number)[2:]
         path = f"{key_hash}/{name_hash}/{serial}"
 
-        return '/'.join(self.ari_endpoint, path)
+        return '/'.join([self.ari_endpoint, path])
 
     def _get_ari(self, cert: RenewableCert, issuer: RenewableCert) -> RenewalInfo:
         url = self._compute_path(cert, issuer)
         try:
-            response = request.get(url)
+            response = requests.get(url)
         except requests.exceptions.RequestException:
             return False
         if response.status_code != 200:
@@ -50,15 +53,19 @@ class AriChecker(object):
         return ari
 
     def should_renew(self, cert: RenewableCert, issuer: RenewableCert) -> bool:
+        """Checks whether the certificate should renew based on ARI information."""
         ari = self._get_ari(cert, issuer)
-        window_secs = ari.window.end + datetime.timedelta(seconds=1) - ari.window.start
-        rand_offset = random.randrange(int(window_secs.total_seconds()))
-        instant = ari.window.start + datetime.timedelta(seconds=rand_offset)
-        return instant <= datetime.datetime.now()
+        if isinstance(ari, RenewalInfo):
+            window_secs = ari.window.end + datetime.timedelta(seconds=1) - ari.window.start
+            rand_offset = randrange(int(window_secs.total_seconds()))
+            instant = ari.window.start + datetime.timedelta(seconds=rand_offset)
+            return instant <= datetime.datetime.now()
+        return False
 
     def should_renew_by_paths(self, cert_path: str, chain_path: str) -> bool:
+        """Accepts cert and chain by path and passes them to should_renew()."""
         with open(cert_path, 'rb') as file_handler:
-            cert = x509.load_pem_x509_certificate(file_handler.read(), default_backend())
+            cert = x509.load_pem_x509_certificate(file_handler.read())
         with open(chain_path, 'rb') as file_handler:
-            issuer = x509.load_pem_x509_certificate(file_handler.read(), default_backend())
+            issuer = x509.load_pem_x509_certificate(file_handler.read())
         return self.should_renew(cert, issuer)

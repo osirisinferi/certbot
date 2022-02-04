@@ -809,7 +809,8 @@ class ClientV2(ClientBase):
                 return orderr
         raise errors.TimeoutError()
 
-    def get_renewal_info(self, cert: jose.ComparableX509, issuer: jose.ComparableX509) -> messages.RenewalInfoResource:
+    def get_renewal_info(self, cert: jose.ComparableX509, issuer: jose.ComparableX509
+                         ) -> messages.RenewalInfoResource:
         """Fetch ACME Renewal Information for certificate.
 
         :param .ComparableX509 cert: The cert whose renewal info should be fetched.

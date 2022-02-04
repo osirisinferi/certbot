@@ -1,7 +1,6 @@
 """Functionality for autorenewal and associated juggling of configurations"""
 
 import copy
-import datetime
 import itertools
 import logging
 import random
@@ -16,9 +15,7 @@ from typing import Mapping
 from typing import Optional
 from typing import Union
 
-from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -37,7 +34,6 @@ from certbot._internal import storage
 from certbot._internal import updater
 from certbot._internal.display import obj as display_obj
 from certbot._internal.plugins import disco as plugins_disco
-from certbot._internal.plugins import selection as plug_sel
 from certbot.compat import os
 from certbot.display import util as display_util
 

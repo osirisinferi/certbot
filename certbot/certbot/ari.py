@@ -1,11 +1,12 @@
 """Cerbot implementation of the ACME Renewal Information (ARI) Extension."""
 from cryptography.hazmat.primitives import hashes
 from cryptography import x509
-from cryptography.x509 import ocsp
+from cryptography.x509 import ocsp, Certificate
 import datetime
 import josepy as jose
 from random import randrange
 import requests
+from typing import Union
 
 from acme.messages import RenewalInfo
 from certbot.interfaces import RenewableCert  # pylint: disable=unused-import
@@ -16,7 +17,7 @@ class AriChecker(object):
     def __init__(self, ari_endpoint: str) -> None:
         self.ari_endpoint = ari_endpoint.rstrip('/')
 
-    def _compute_path(self, cert: RenewableCert, issuer: RenewableCert) -> bool:
+    def _compute_path(self, cert: Certificate, issuer: Certificate) -> str:
         # Rather than compute the serial, issuer key hash, and issuer name hash
         # ourselves, we instead build an OCSP Request and extract those fields.
         builder = ocsp.OCSPRequestBuilder()
@@ -31,8 +32,9 @@ class AriChecker(object):
 
         return '/'.join([self.ari_endpoint, path])
 
-    def _get_ari(self, cert: RenewableCert, issuer: RenewableCert) -> RenewalInfo:
+    def _get_ari(self, cert: Certificate, issuer: Certificate) -> Union[RenewalInfo, bool]:
         url = self._compute_path(cert, issuer)
+        breakpoint()
         try:
             response = requests.get(url)
         except requests.exceptions.RequestException:
@@ -52,7 +54,7 @@ class AriChecker(object):
 
         return ari
 
-    def should_renew(self, cert: RenewableCert, issuer: RenewableCert) -> bool:
+    def should_renew(self, cert: Certificate, issuer: Certificate) -> bool:
         """Checks whether the certificate should renew based on ARI information."""
         ari = self._get_ari(cert, issuer)
         if isinstance(ari, RenewalInfo):

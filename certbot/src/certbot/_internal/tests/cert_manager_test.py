@@ -206,10 +206,12 @@ class CertificatesTest(BaseCertManagerTest):
         assert mock_utility.called
         shutil.rmtree(empty_tempdir)
 
+    @mock.patch('certbot.crypto_util.get_tls_features_from_cert')
     @mock.patch('certbot.crypto_util.get_serial_from_cert')
     @mock.patch('certbot._internal.cert_manager.ocsp.RevocationChecker.ocsp_revoked')
-    def test_report_human_readable(self, mock_revoked, mock_serial):
+    def test_report_human_readable(self, mock_revoked, mock_serial, mock_tlsfeatures):
         mock_revoked.return_value = None
+        mock_tlsfeatures.return_value = []
         mock_serial.return_value = 1234567890
         import datetime
 

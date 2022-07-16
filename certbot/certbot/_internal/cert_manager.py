@@ -318,10 +318,28 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
 
     valid_string = "{0} ({1})".format(cert.target_expiry, status)
     serial = format(crypto_util.get_serial_from_cert(cert.cert_path), 'x')
+    if cert.private_key_type == "RSA":
+        key_details = "Size: {} bits".format(cert.rsa_key_size)
+    else:
+        key_details = "Curve: {}".format(cert.elliptic_curve)
+
+    tls_feats: Union[crypto_util.x509.TLSFeature, List] = crypto_util.get_tls_features_from_cert(
+                                                           cert.cert_path) or []
+    must_staple = False
+    for tls_feature in tls_feats:
+        # TLSFeatureType(5): status_request (RFC 6066)
+        # TLSFeatureType(17): status_request_v2 (RFC 6961)
+        if (
+            tls_feature == crypto_util.x509.TLSFeatureType(5)
+            or tls_feature == crypto_util.x509.TLSFeatureType(17)
+        ):
+            must_staple = True
     certinfo.append(f"  Certificate Name: {cert.lineagename}\n"
                     f"    Serial Number: {serial}\n"
                     f"    Key Type: {cert.private_key_type}\n"
+                    f"    Key {key_details}\n"
                     f'    Domains: {" ".join(cert.names())}\n'
+                    f"    Must Staple TLS Feature: {'Enabled' if must_staple else 'Disabled'}\n"
                     f"    Expiry Date: {valid_string}\n"
                     f"    Certificate Path: {cert.fullchain}\n"
                     f"    Private Key Path: {cert.privkey}")

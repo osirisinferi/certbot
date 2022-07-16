@@ -334,6 +334,8 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
             or tls_feature == crypto_util.x509.TLSFeatureType(17)
         ):
             must_staple = True
+    installer = str(cert.configuration['renewalparams'].get('installer')).lower()
+    authenticator = str(cert.configuration['renewalparams'].get('authenticator')).lower()
     certinfo.append(f"  Certificate Name: {cert.lineagename}\n"
                     f"    Serial Number: {serial}\n"
                     f"    Key Type: {cert.private_key_type}\n"
@@ -341,6 +343,9 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
                     f'    Domains: {" ".join(cert.names())}\n'
                     f"    Must Staple TLS Feature: {'Enabled' if must_staple else 'Disabled'}\n"
                     f"    Expiry Date: {valid_string}\n"
+                     "    Plugins:\n"
+                    f"        Authenticator: {authenticator}\n"
+                    f"        Installer: {installer}\n"
                     f"    Certificate Path: {cert.fullchain}\n"
                     f"    Private Key Path: {cert.privkey}")
     return "".join(certinfo)

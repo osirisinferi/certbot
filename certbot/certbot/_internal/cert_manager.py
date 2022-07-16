@@ -324,11 +324,16 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
 
     valid_string = "{0} ({1})".format(cert.target_expiry, status)
     serial = format(crypto_util.get_serial_from_cert(cert.cert_path), 'x')
+    installer = str(cert.configuration['renewalparams'].get('installer')).lower()
+    authenticator = str(cert.configuration['renewalparams'].get('authenticator')).lower()
     certinfo.append(f"  Certificate Name: {cert.lineagename}\n"
                     f"    Serial Number: {serial}\n"
                     f"    Key Type: {cert.private_key_type}\n"
                     f'    Domains: {" ".join(cert.names())}\n'
                     f"    Expiry Date: {valid_string}\n"
+                     "    Plugins:\n"
+                    f"        Authenticator: {authenticator}\n"
+                    f"        Installer: {installer}\n"
                     f"    Certificate Path: {cert.fullchain}\n"
                     f"    Private Key Path: {cert.privkey}")
     return "".join(certinfo)

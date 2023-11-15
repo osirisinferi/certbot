@@ -324,8 +324,10 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
 
     valid_string = "{0} ({1})".format(cert.target_expiry, status)
     serial = format(crypto_util.get_serial_from_cert(cert.cert_path), 'x')
+    issuer = crypto_util.get_issuer_from_cert(cert.cert_path)
     certinfo.append(f"  Certificate Name: {cert.lineagename}\n"
                     f"    Serial Number: {serial}\n"
+                    f"    Issuer: {issuer}\n"
                     f"    Key Type: {cert.private_key_type}\n"
                     f'    Domains: {" ".join(cert.names())}\n'
                     f"    Expiry Date: {valid_string}\n"

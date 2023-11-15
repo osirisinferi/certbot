@@ -581,6 +581,18 @@ def get_tls_features_from_cert(cert_path: str) -> Optional[x509.TLSFeature]:
         return None
 
 
+def get_issuer_from_cert(cert_path: str) -> str:
+    """Retrieve the issuer of the certificate from certificate path
+
+    :param str cert_path: path to a cert in PEM format
+    :returns: issuer of the certificate
+    :rtype: str
+    """
+    with open(cert_path, "rb") as f:
+        x509 = crypto.load_certificate(crypto.FILETYPE_PEM, f.read())
+    return x509.get_issuer().commonName
+
+
 def find_chain_with_issuer(fullchains: List[str], issuer_cn: str,
                            warn_on_no_match: bool = False) -> str:
     """Chooses the first certificate chain from fullchains whose topmost

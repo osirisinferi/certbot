@@ -337,6 +337,7 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
 
     valid_string = "{0} ({1})".format(cert.target_expiry, status)
     serial = format(crypto_util.get_serial_from_cert(cert.cert_path), 'x')
+    issuer = crypto_util.get_issuer_from_cert(cert.cert_path)
     if cert.private_key_type == "RSA":
         key_details = "Size:                {} bits".format(cert.rsa_key_size)
     else:
@@ -358,6 +359,7 @@ def human_readable_cert_info(config: configuration.NamespaceConfig, cert: storag
     certinfo.append(f"  {bold}Certificate Name{reset}:          "
                     f"{underline}{cert.lineagename}{reset}\n"
                     f"    Serial Number:           {serial}\n"
+                    f"    Issuer:                  {issuer}\n"
                     f"    Key Type:                {cert.private_key_type}\n"
                     f"    Key {key_details}\n"
                     f'    Domains:                 {" ".join(cert.names())}\n'

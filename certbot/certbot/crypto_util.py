@@ -625,7 +625,15 @@ def get_issuer_from_cert(cert_path: str) -> str:
     """
     with open(cert_path, "rb") as f:
         x509 = crypto.load_certificate(crypto.FILETYPE_PEM, f.read())
-    return x509.get_issuer().commonName
+
+    issuer = x509.get_issuer()
+    cn = issuer.commonName
+    org = issuer.organizationName
+
+    if org.lower() in cn.lower():
+        return f"{issuer.commonName}"
+
+    return f"{issuer.commonName} ({issuer.organizationName})"
 
 
 def find_chain_with_issuer(fullchains: List[str], issuer_cn: str,
